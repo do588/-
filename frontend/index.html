@@ -1,0 +1,742 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>集成式步态分析系统</title>
+    <style>
+        /* 全局样式 */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            color: #333;
+        }
+        
+        /* 容器 */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+        
+        /* 标题区域 */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            color: white;
+        }
+        
+        .header h1 {
+            font-size: 2.5rem;
+            font-weight: 700;
+            margin-bottom: 10px;
+            text-shadow: 0 2px 4px rgba(0,0,0,0.3);
+        }
+        
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+        
+        /* 卡片样式 */
+        .card {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+            padding: 30px;
+            margin-bottom: 30px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        
+        .card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 15px 35px rgba(0,0,0,0.15);
+        }
+        
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            font-weight: 600;
+        }
+        
+        /* 表单样式 */
+        .form-group {
+            margin-bottom: 20px;
+        }
+        
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #555;
+        }
+        
+        .form-group input[type="file"] {
+            width: 100%;
+            padding: 12px;
+            border: 2px dashed #ddd;
+            border-radius: 8px;
+            background: #f9f9f9;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group input[type="file"]:hover {
+            border-color: #667eea;
+            background: #f0f4ff;
+        }
+        
+        .form-group select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            transition: all 0.3s ease;
+        }
+        
+        .form-group select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+        
+        /* 按钮样式 */
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            width: 100%;
+        }
+        
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+        }
+        
+        .btn:active {
+            transform: translateY(0);
+        }
+        
+        /* 视频容器 */
+        .video-container {
+            margin: 30px 0;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .video-container video {
+            width: 100%;
+            display: block;
+        }
+        
+        /* 结果区域 */
+        .results {
+            margin-top: 30px;
+        }
+        
+        .result-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+        }
+        
+        .result-card {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 20px;
+            border-left: 4px solid #667eea;
+            transition: all 0.3s ease;
+        }
+        
+        .result-card:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+        
+        .result-card h3 {
+            font-size: 1rem;
+            color: #666;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+        
+        .result-card p {
+            font-size: 1.2rem;
+            font-weight: 700;
+            color: #333;
+        }
+        
+        /* 评分显示 */
+        .score-high {
+            color: #4CAF50 !important;
+        }
+        
+        .score-medium {
+            color: #FF9800 !important;
+        }
+        
+        .score-low {
+            color: #F44336 !important;
+        }
+        
+        /* 加载状态 */
+        .loading {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .loading-spinner {
+            border: 4px solid rgba(102, 126, 234, 0.3);
+            border-radius: 50%;
+            border-top: 4px solid #667eea;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 20px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        
+        /* 调试信息 */
+        .debug {
+            background: #f0f4ff;
+            padding: 20px;
+            border-radius: 8px;
+            margin-top: 20px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            max-height: 200px;
+            overflow-y: auto;
+            border: 1px solid #e0e7ff;
+        }
+        
+        /* 响应式设计 */
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 15px;
+            }
+            
+            .header h1 {
+                font-size: 2rem;
+            }
+            
+            .card {
+                padding: 20px;
+            }
+            
+            .result-grid {
+                grid-template-columns: 1fr;
+            }
+        }
+        
+        /* 动画效果 */
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in {
+            animation: fadeIn 0.6s ease forwards;
+        }
+        
+        /* 表单反馈 */
+        .file-name {
+            margin-top: 10px;
+            font-size: 14px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>集成式步态分析系统</h1>
+            <p>基于深度学习的步态健康评估平台</p>
+        </div>
+        
+        <div class="card fade-in">
+            <h2>视频上传</h2>
+            <div class="form-group">
+                <label for="video-upload">选择步态视频</label>
+                <input type="file" id="video-upload" accept="video/*" onchange="updateFileName(this)">
+                <div class="file-name" id="file-name">未选择文件</div>
+            </div>
+            <div class="form-group">
+                <label for="enhancement-method">增强方法</label>
+                <select id="enhancement-method">
+                    <option value="deep_learning">深度学习增强</option>
+                    <option value="progressive">渐进式增强</option>
+                </select>
+            </div>
+            <button class="btn" id="analyze-btn" onclick="analyzeVideo()">开始分析</button>
+        </div>
+        
+        <div class="card fade-in">
+            <h2>摄像头实时分析</h2>
+            <div class="form-group">
+                <label for="camera-select">选择摄像头</label>
+                <select id="camera-select" onchange="updateCamera()">
+                    <option value="">请选择摄像头</option>
+                </select>
+            </div>
+            <div class="video-container" style="margin: 20px 0;">
+                <video id="camera-video" autoplay muted style="width: 100%; display: block;"></video>
+            </div>
+            <div style="display: flex; gap: 10px;">
+                <button class="btn" id="start-camera-btn" onclick="startCamera()" style="flex: 1;">开启摄像头</button>
+                <button class="btn" id="stop-camera-btn" onclick="stopCamera()" style="flex: 1; background: #F44336;">停止摄像头</button>
+                <button class="btn" id="start-real-time-btn" onclick="startRealTimeAnalysis()" style="flex: 1; background: #4CAF50;">开始实时分析</button>
+            </div>
+        </div>
+        
+        <div class="card fade-in">
+            <h2>分析结果</h2>
+            <div class="video-container">
+                <video id="output-video" controls></video>
+            </div>
+            <div class="results" id="results">
+                <div style="text-align: center; padding: 40px;">
+                    <p>上传视频并点击分析按钮开始</p>
+                </div>
+            </div>
+            <div class="debug" id="debug" style="display: none;">
+                <!-- 调试信息将在这里显示 -->
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // 调试函数
+        function logDebug(message) {
+            console.log(message);
+            const debugDiv = document.getElementById('debug');
+            if (debugDiv) {
+                debugDiv.innerHTML += message + '<br>';
+            }
+        }
+        
+        // 更新文件名显示
+        function updateFileName(input) {
+            const fileName = input.files[0] ? input.files[0].name : '未选择文件';
+            document.getElementById('file-name').textContent = fileName;
+        }
+        
+        // 全局变量
+        let stream = null;
+        let videoElement = null;
+        let realTimeAnalysisInterval = null;
+        let canvas = null;
+        let ctx = null;
+        
+        // 初始化页面
+        window.onload = function() {
+            logDebug('页面加载完成');
+            logDebug('分析按钮已找到: ' + (document.getElementById('analyze-btn') !== null));
+            logDebug('视频上传组件已找到: ' + (document.getElementById('video-upload') !== null));
+            logDebug('增强方法选择已找到: ' + (document.getElementById('enhancement-method') !== null));
+            logDebug('输出视频组件已找到: ' + (document.getElementById('output-video') !== null));
+            logDebug('结果区域已找到: ' + (document.getElementById('results') !== null));
+            
+            // 初始化摄像头相关元素
+            videoElement = document.getElementById('camera-video');
+            canvas = document.createElement('canvas');
+            ctx = canvas.getContext('2d');
+            
+            // 检测可用摄像头
+            detectCameras();
+        };
+        
+        // 检测可用摄像头
+        function detectCameras() {
+            logDebug('开始检测摄像头');
+            if (!navigator.mediaDevices || !navigator.mediaDevices.enumerateDevices) {
+                logDebug('浏览器不支持摄像头检测');
+                return;
+            }
+            
+            navigator.mediaDevices.enumerateDevices()
+                .then(devices => {
+                    logDebug(`检测到 ${devices.length} 个设备`);
+                    const cameraSelect = document.getElementById('camera-select');
+                    cameraSelect.innerHTML = '<option value="">请选择摄像头</option>';
+                    
+                    let firstCameraId = null;
+                    devices.forEach(device => {
+                        logDebug(`设备: kind=${device.kind}, label=${device.label}, deviceId=${device.deviceId}`);
+                        if (device.kind === 'videoinput') {
+                            const option = document.createElement('option');
+                            option.value = device.deviceId;
+                            option.text = device.label || `摄像头 ${cameraSelect.length}`;
+                            cameraSelect.appendChild(option);
+                            logDebug(`添加摄像头选项: 值=${device.deviceId}, 文本=${option.text}`);
+                            
+                            // 保存第一个摄像头的ID
+                            if (!firstCameraId) {
+                                firstCameraId = device.deviceId;
+                            }
+                        }
+                    });
+                    
+                    logDebug(`检测到 ${cameraSelect.length - 1} 个摄像头`);
+                    // 显示所有摄像头信息
+                    logDebug('摄像头列表:');
+                    for (let i = 0; i < cameraSelect.options.length; i++) {
+                        logDebug(`选项 ${i}: 值=${cameraSelect.options[i].value}, 文本=${cameraSelect.options[i].text}`);
+                    }
+                    
+                    // 自动选择第一个摄像头
+                    if (firstCameraId) {
+                        cameraSelect.value = firstCameraId;
+                        logDebug(`自动选择第一个摄像头: ${firstCameraId}`);
+                    }
+                })
+                .catch(err => {
+                    logDebug('检测摄像头失败: ' + err);
+                });
+        }
+        
+        // 开启摄像头
+        function startCamera(deviceId) {
+            logDebug(`startCamera 被调用，deviceId: ${deviceId}`);
+            
+            if (!deviceId) {
+                const cameraSelect = document.getElementById('camera-select');
+                deviceId = cameraSelect.value;
+                logDebug(`从摄像头选择器获取 deviceId: ${deviceId}`);
+            }
+            
+            // 检查是否选择了摄像头
+            if (!deviceId) {
+                logDebug('deviceId 为空，显示警告');
+                alert('请选择摄像头');
+                return;
+            }
+            
+            logDebug(`准备开启摄像头，deviceId: ${deviceId}`);
+            
+            const constraints = {
+                video: {
+                    deviceId: { exact: deviceId },
+                    width: { ideal: 1280 },
+                    height: { ideal: 720 }
+                },
+                audio: false
+            };
+            
+            navigator.mediaDevices.getUserMedia(constraints)
+                .then(s => {
+                    stream = s;
+                    videoElement.srcObject = stream;
+                    logDebug('摄像头已开启');
+                })
+                .catch(err => {
+                    logDebug('开启摄像头失败: ' + err);
+                    alert('开启摄像头失败: ' + err);
+                });
+        }
+        
+        // 停止摄像头
+        function stopCamera() {
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                videoElement.srcObject = null;
+                logDebug('摄像头已停止');
+            }
+            
+            // 停止实时分析
+            if (realTimeAnalysisInterval) {
+                clearInterval(realTimeAnalysisInterval);
+                realTimeAnalysisInterval = null;
+                logDebug('实时分析已停止');
+            }
+        }
+        
+        // 更新摄像头
+        function updateCamera() {
+            logDebug('updateCamera 被调用');
+            const cameraSelect = document.getElementById('camera-select');
+            const deviceId = cameraSelect.value;
+            logDebug(`选择的 deviceId: ${deviceId}`);
+            
+            // 检查是否选择了摄像头
+            if (!deviceId) {
+                logDebug('未选择摄像头，返回');
+                return;
+            }
+            
+            // 先停止当前摄像头
+            if (stream) {
+                stream.getTracks().forEach(track => track.stop());
+                stream = null;
+                logDebug('已停止当前摄像头');
+            }
+            
+            // 开启新选择的摄像头
+            logDebug(`调用 startCamera，deviceId: ${deviceId}`);
+            startCamera(deviceId);
+        }
+        
+        // 开始实时分析
+        function startRealTimeAnalysis() {
+            if (!stream) {
+                alert('请先开启摄像头');
+                return;
+            }
+            
+            // 停止之前的分析
+            if (realTimeAnalysisInterval) {
+                clearInterval(realTimeAnalysisInterval);
+            }
+            
+            // 每300毫秒发送一帧进行分析
+            realTimeAnalysisInterval = setInterval(() => {
+                captureAndAnalyzeFrame();
+            }, 300);
+            
+            logDebug('实时分析已开始');
+        }
+        
+        // 捕获并分析帧
+        function captureAndAnalyzeFrame() {
+            if (!stream || !videoElement) return;
+            
+            // 设置canvas尺寸与视频一致
+            canvas.width = videoElement.videoWidth;
+            canvas.height = videoElement.videoHeight;
+            
+            // 绘制视频帧到canvas
+            ctx.drawImage(videoElement, 0, 0, canvas.width, canvas.height);
+            
+            // 将canvas转换为blob
+            canvas.toBlob((blob) => {
+                if (!blob) return;
+                
+                // 创建FormData
+                const formData = new FormData();
+                formData.append('frame', blob, 'frame.jpg');
+                formData.append('enhancement_method', 'deep_learning');
+                
+                // 发送到后端
+                fetch('http://127.0.0.1:5000/api/analyze-frame', {
+                    method: 'POST',
+                    body: formData
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.success) {
+                        // 更新实时分析结果
+                        updateRealTimeResults(data);
+                    }
+                })
+                .catch(error => {
+                    logDebug('实时分析错误: ' + error);
+                });
+            }, 'image/jpeg', 0.8);
+        }
+        
+        // 更新实时分析结果
+        function updateRealTimeResults(data) {
+            const resultsDiv = document.getElementById('results');
+            const gaitScore = data.gait_score;
+            const scoreClass = getScoreClass(gaitScore);
+            
+            // 检查是否有跌倒风险警告
+            let warningHtml = '';
+            if (data.fall_risk === 'High') {
+                warningHtml = `<div style="background-color: #FFEBEE; color: #C62828; padding: 15px; border-radius: 8px; margin-bottom: 20px; font-weight: bold; text-align: center;">
+                    ⚠️ 存在摔倒风险 ⚠️
+                </div>`;
+            }
+            
+            resultsDiv.innerHTML = warningHtml + `
+                <div class="result-grid">
+                    <div class="result-card">
+                        <h3>视角</h3>
+                        <p>${data.view}</p>
+                    </div>
+                    <div class="result-card">
+                        <h3>条件</h3>
+                        <p>${data.condition}</p>
+                    </div>
+                    <div class="result-card">
+                        <h3>步态评分</h3>
+                        <p class="${scoreClass}">${gaitScore.toFixed(1)}</p>
+                    </div>
+                    <div class="result-card">
+                        <h3>跌倒风险</h3>
+                        <p>${data.fall_risk}</p>
+                    </div>
+                    <div class="result-card">
+                        <h3>遮挡评分</h3>
+                        <p>${data.occlusion_score.toFixed(1)}</p>
+                    </div>
+                    <div class="result-card">
+                        <h3>风险因素</h3>
+                        <p>${data.risk_factors.length > 0 ? data.risk_factors.join(', ') : '无'}</p>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; font-size: 14px; color: #666; text-align: right;">
+                    实时分析更新时间: ${new Date().toLocaleTimeString()}
+                </div>
+            `;
+        }
+        
+        // 获取评分等级
+        function getScoreClass(score) {
+            if (score >= 80) return 'score-high';
+            if (score >= 60) return 'score-medium';
+            return 'score-low';
+        }
+        
+        // 分析视频
+        function analyzeVideo() {
+            logDebug('分析按钮被点击');
+            
+            const videoFile = document.getElementById('video-upload').files[0];
+            if (!videoFile) {
+                alert('请上传视频文件');
+                logDebug('未选择视频文件');
+                return;
+            }
+            
+            logDebug('视频文件已选择: ' + videoFile.name);
+            
+            const enhancementMethod = document.getElementById('enhancement-method').value;
+            logDebug('增强方法: ' + enhancementMethod);
+            
+            const formData = new FormData();
+            formData.append('video', videoFile);
+            formData.append('enhancement_method', enhancementMethod);
+            
+            // 显示加载状态
+            document.getElementById('results').innerHTML = `
+                <div class="loading">
+                    <div class="loading-spinner"></div>
+                    <p>正在分析视频，请稍候...</p>
+                </div>
+            `;
+            logDebug('正在向后端发送请求...');
+            
+            fetch('http://127.0.0.1:5000/api/analyze', {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => {
+                logDebug('响应状态: ' + response.status);
+                return response.json();
+            })
+            .then(data => {
+                logDebug('收到响应数据');
+                logDebug('成功: ' + data.success);
+                
+                if (data.success) {
+                    // 显示视频
+                    const videoElement = document.getElementById('output-video');
+                    try {
+                        logDebug('视频数据长度: ' + data.video.length);
+                        
+                        // 创建Blob对象并使用URL.createObjectURL
+                        const binaryString = atob(data.video);
+                        const length = binaryString.length;
+                        const bytes = new Uint8Array(length);
+                        for (let i = 0; i < length; i++) {
+                            bytes[i] = binaryString.charCodeAt(i);
+                        }
+                        const blob = new Blob([bytes], {type: 'video/mp4'});
+                        const videoUrl = URL.createObjectURL(blob);
+                        videoElement.src = videoUrl;
+                        logDebug('使用Blob URL创建视频');
+                        
+                        // 添加错误处理
+                        videoElement.onerror = function() {
+                            logDebug('视频错误: ' + videoElement.error.message);
+                        };
+                        
+                        videoElement.onloadedmetadata = function() {
+                            logDebug('视频元数据加载完成: ' + videoElement.duration + ' 秒');
+                        };
+                    } catch (error) {
+                        logDebug('创建视频URL时出错: ' + error.message);
+                    }
+                    
+                    // 显示结果
+                    const resultsDiv = document.getElementById('results');
+                    const gaitScore = data.gait_score;
+                    const scoreClass = getScoreClass(gaitScore);
+                    
+                    resultsDiv.innerHTML = `
+                        <div class="result-grid">
+                            <div class="result-card">
+                                <h3>视角</h3>
+                                <p>${data.view}</p>
+                            </div>
+                            <div class="result-card">
+                                <h3>条件</h3>
+                                <p>${data.condition}</p>
+                            </div>
+                            <div class="result-card">
+                                <h3>步态评分</h3>
+                                <p class="${scoreClass}">${gaitScore.toFixed(1)}</p>
+                            </div>
+                            <div class="result-card">
+                                <h3>跌倒风险</h3>
+                                <p>${data.fall_risk}</p>
+                            </div>
+                            <div class="result-card">
+                                <h3>遮挡评分</h3>
+                                <p>${data.occlusion_score.toFixed(1)}</p>
+                            </div>
+                            <div class="result-card">
+                                <h3>风险因素</h3>
+                                <p>${data.risk_factors.length > 0 ? data.risk_factors.join(', ') : '无'}</p>
+                            </div>
+                        </div>
+                    `;
+                    logDebug('结果已显示');
+                } else {
+                    document.getElementById('results').innerHTML = `
+                        <div style="text-align: center; padding: 40px; color: #F44336;">
+                            <p>错误: ${data.error}</p>
+                        </div>
+                    `;
+                    logDebug('错误: ' + data.error);
+                }
+            })
+            .catch(error => {
+                console.error('请求错误:', error);
+                document.getElementById('results').innerHTML = `
+                    <div style="text-align: center; padding: 40px; color: #F44336;">
+                        <p>错误: ${error.message}</p>
+                    </div>
+                `;
+                logDebug('请求错误: ' + error.message);
+            });
+        }
+    </script>
+</body>
+</html>
